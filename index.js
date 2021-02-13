@@ -34,7 +34,7 @@ client.connect(err => {
   app.post('/appointmentByDate', (req, res) => {
     const date = req.body;
     console.log(date.date);
-    AppointmentCollection.find({date:date.date})
+    AppointmentCollection.find({date: date.date})
     .toArray((err , documents) => {
         res.send(documents)
         console.log(documents);
@@ -45,7 +45,25 @@ app.post('/addDoctor' , (req, res) => {
     const name = req.body.name;
     const email = req.body.email;
     const file = req.files.file;
-    
+console.log(name, email , file);
+    // const newImg = file.data;
+    // const encImg = newImg.toString('base64');
+    // console.log(name , email , file);
+    // var image = {
+    //     contentType: file.mimetype,
+    //     size: file.size,
+    //     img: Buffer.from(encImg, 'base64')
+    // };
+
+    DoctorCollection.insertOne({ name, email, file })
+            .then(result => {
+                res.send(result.insertedCount > 0);
+                console.log(result);
+            })
+            
+
+    //  -------------save image on doctors folder-------------
+
     file.mv(`${__dirname}/doctors/${file.name}`, err => {
         if(err) {
             console.log('error 404');
@@ -54,6 +72,7 @@ app.post('/addDoctor' , (req, res) => {
         return res.send({name: file.name , path: `${file.name}`})
     })
     console.log(file , name , email);
+
 })
 
 
