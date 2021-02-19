@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 // const fs = require('fs-extra');
 const fileUpload = require('express-fileupload');
 const MongoClient = require('mongodb').MongoClient;
-// const port = process.env.PORT || 5000;
+const port = process.env.PORT || 5000;
 require('dotenv').config()
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.bdvqy.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`;
@@ -25,8 +25,7 @@ client.connect(err => {
     const DoctorCollection = client.db("Doctors-Portal").collection("doctors");
 
 
-
-    // add appointment ----------------------------
+    // add appointment --------------------------------------------------------------------------
     app.post('/appointment', (req, res) => {
         const appointment = req.body;
         AppointmentCollection.insertOne(appointment)
@@ -36,21 +35,25 @@ client.connect(err => {
     });
 
 
-
-    //find appointment by date---------------------
+    //find appointment by date----------------------------------------------------------------------
     app.post('/appointmentByDate', (req, res) => {
-        const date = req.body;
-
-        AppointmentCollection.find({ date: date.date })
-            .toArray((err, documents) => {
-                res.send(documents)
-                console.log(documents);
+        const date = req.body.date;
+        const email = req.body.email;
+        DoctorCollection.find({ email: email })
+            .toArray((err, doctors) => {
+                const filter = { date: date }
+                if (doctors.length === 0) {
+                    filter.email = email;
+                }
+                AppointmentCollection.find(filter)
+                    .toArray((err, documents) => {
+                        res.send(documents)
+                    })
             })
     });
 
 
-
-    // add doctor on home page------------------------
+    // add doctor on home page------------------------------------------------------------------
     app.post('/addDoctor', (req, res) => {
         const name = req.body.name;
         const email = req.body.email;
@@ -61,28 +64,22 @@ client.connect(err => {
             size: file.size,
             img: `${file.name}`
         };
-        console.log(name, email, image);
         //  -------------save image on doctors folder-------------
-
-
         file.mv(`${__dirname}/doctor/${file.name}`, err => {
             if (err) {
                 alert('Error')
-                console.log('error 404');
                 return res.status(500).send({ msg: 'fail to upload' })
             }
             DoctorCollection.insertOne({ name, email, image })
                 .then(result => {
                     res.send(result.insertedCount > 0);
-                    console.log(result);
                 });
             return res.send({ name: file.name, path: `${file.name}` })
         });
     });
 
 
-
-    // face doctor in home page
+    // face doctor in home page--------------------------------------------------------------------
     app.get('/doctors', (req, res) => {
         DoctorCollection.find({})
             .toArray((err, documents) => {
@@ -90,6 +87,22 @@ client.connect(err => {
             })
     });
 
+   // sidebar manue control ----------------------------------------------------------------------
+    app.post('/isDoctor', (req, res) => {
+        const email = req.body.email;
+        DoctorCollection.find({ email: email })
+            .toArray((err, doctors) => {
+              res.send( doctors.length > 0)
+            })
+    });
+
+    //All Patient control ----------------------------------------------------------------
+    app.get ("/allPatients" , (req, res) => {
+        AppointmentCollection.find({})
+        .toArray((err ,documents) => {
+            res.json(documents)
+        })
+    })
 
 
 
@@ -98,10 +111,7 @@ client.connect(err => {
 
 
 
-// app.listen( port,()=>console.log(`connected database server${port}`));
-app.listen(5000);
-
-
+app.listen( port,()=>console.log(`connected database server${port}`));
 
 // // add doctor on home page------------------------
 // app.post('/addDoctor', (req, res) => {
@@ -110,7 +120,7 @@ app.listen(5000);
 //     const file = req.files.file;
 //     const filePath = `${__dirname}/doctor/${file.name}`;
 //     console.log(name, email, image);
-    
+
 //     //  -------------save image on doctors folder-------------
 //     file.mv(filePath, err => {
 //         if (err) {
@@ -134,7 +144,7 @@ app.listen(5000);
 //                     }
 //                     res.send(result.insertedCount > 0);
 //                 })
-               
+
 //                 console.log(result);
 //             });
 //         return res.send({ name: file.name, path: `${file.name}` })
